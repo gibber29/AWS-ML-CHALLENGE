@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+dataset/
+output/
+.vscode/
+.ipynb_checkpoints/
+*.zip
+AWS-ML-CHALLENGE/
