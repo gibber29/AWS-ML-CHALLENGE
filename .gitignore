@@ -5,7 +5,10 @@ __pycache__/
 .env
 dataset/
 output/
+outputs/
+reports/
+*.tmp
+*.sqlite3
 .vscode/
 .ipynb_checkpoints/
 *.zip
-AWS-ML-CHALLENGE/
