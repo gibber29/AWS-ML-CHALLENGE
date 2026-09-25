@@ -80,6 +80,54 @@ def normalize_name(value: object) -> NormalizedName:
     return NormalizedName(raw, normalized, fold_accents(normalized), core, fold_accents(core))
 
 
+# Consonants only. Aspirated letters collapse so Latin "f" matches फ and ಫ.
+_INDIC_CONSONANTS = {
+    "क": "k", "ख": "k", "ग": "g", "घ": "g", "ङ": "n",
+    "च": "c", "छ": "c", "ज": "j", "झ": "j", "ञ": "n",
+    "ट": "t", "ठ": "t", "ड": "d", "ढ": "d", "ण": "n",
+    "त": "t", "थ": "t", "द": "d", "ध": "d", "न": "n",
+    "प": "p", "फ": "f", "ब": "b", "भ": "b", "म": "m",
+    "य": "y", "र": "r", "ल": "l", "व": "v", "श": "s",
+    "ष": "s", "स": "s", "ह": "h", "ळ": "l", "ऱ": "r",
+    "ಕ": "k", "ಖ": "k", "ಗ": "g", "ಘ": "g", "ಙ": "n",
+    "ಚ": "c", "ಛ": "c", "ಜ": "j", "ಝ": "j", "ಞ": "n",
+    "ಟ": "t", "ಠ": "t", "ಡ": "d", "ಢ": "d", "ಣ": "n",
+    "ತ": "t", "ಥ": "t", "ದ": "d", "ಧ": "d", "ನ": "n",
+    "ಪ": "p", "ಫ": "f", "ಬ": "b", "ಭ": "b", "ಮ": "m",
+    "ಯ": "y", "ರ": "r", "ಲ": "l", "ವ": "v", "ಶ": "s",
+    "ಷ": "s", "ಸ": "s", "ಹ": "h", "ಳ": "l",
+    "క": "k", "ఖ": "k", "గ": "g", "ఘ": "g", "ఙ": "n",
+    "చ": "c", "ఛ": "c", "జ": "j", "ఝ": "j", "ఞ": "n",
+    "ట": "t", "ఠ": "t", "డ": "d", "ఢ": "d", "ణ": "n",
+    "త": "t", "థ": "t", "ద": "d", "ధ": "d", "న": "n",
+    "ప": "p", "ఫ": "f", "బ": "b", "భ": "b", "మ": "m",
+    "య": "y", "ర": "r", "ల": "l", "వ": "v", "శ": "s",
+    "ష": "s", "స": "s", "హ": "h", "ళ": "l",
+}
+_INDIC_R = set("ृೃృ")
+_INDIC_N = set("ंँಂఁఁం")
+_VOWELS = set("aeiou")
+
+
+def consonant_skeleton(value: object) -> str:
+    """Latin consonant string, with Indic letters mapped onto the same alphabet."""
+    text = fold_accents(value)
+    chars: list[str] = []
+    for char in text:
+        mapped = _INDIC_CONSONANTS.get(char)
+        if mapped:
+            chars.append("k" if mapped == "c" else mapped)
+        elif char in _INDIC_R:
+            chars.append("r")
+        elif char in _INDIC_N:
+            chars.append("n")
+        elif char == "x":
+            chars.append("ks")
+        elif "a" <= char <= "z" and char not in _VOWELS and char != "h":
+            chars.append("k" if char == "c" else char)
+    return "".join(chars)
+
+
 def normalize_address(value: object) -> NormalizedAddress:
     raw = _text(value)
     normalized = normalize_text(raw)
