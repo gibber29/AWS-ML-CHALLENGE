@@ -12,3 +12,5 @@ reports/
 .vscode/
 .ipynb_checkpoints/
 *.zip
+docs/official/*.mp4
+docs/official/Blog.pdf
