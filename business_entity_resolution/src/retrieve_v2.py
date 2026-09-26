@@ -44,7 +44,7 @@ def _latin_skeleton(tokens: list[str]) -> str:
     return "".join(chars)
 
 
-def record_keys(name: str, address: str) -> list[tuple[str, float]]:
+def legacy_record_keys(name: str, address: str) -> list[tuple[str, float]]:
     """Country-independent keys and their type weights."""
     name = "" if name is None else str(name)
     address = "" if address is None else str(address)
@@ -83,6 +83,18 @@ def record_keys(name: str, address: str) -> list[tuple[str, float]]:
     return keys
 
 
+def unique_keys(keys: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """One contribution per document/key; the strongest explicit weight wins."""
+    weights: dict[str, float] = {}
+    for key, weight in keys:
+        weights[key] = max(weight, weights.get(key, weight))
+    return list(weights.items())
+
+
+def record_keys(name: str, address: str) -> list[tuple[str, float]]:
+    return unique_keys(legacy_record_keys(name, address))
+
+
 def _family(key: str) -> str:
     return key.split(":", 1)[0]
 
@@ -109,6 +121,8 @@ def index_rows(rows: list[tuple[str, str, str, str]]) -> tuple[dict[str, list[in
     counts: Counter[str] = Counter()
     parsed: list[tuple[str, str, list[tuple[str, float]]]] = []
     for entity_id, name, address, country in rows:
+        if not entity_id.startswith(("S2-", "S3-")):
+            continue
         keys = record_keys(name, address)
         parsed.append((entity_id, country, keys))
         for key, _weight in keys:
@@ -135,7 +149,7 @@ def retrieve(
     k: int,
 ) -> list[str]:
     scores: dict[int, float] = {}
-    for key, weight in keys:
+    for key, weight in unique_keys(keys):
         full = f"{country}|{key}"
         bucket = postings.get(full)
         if not bucket:

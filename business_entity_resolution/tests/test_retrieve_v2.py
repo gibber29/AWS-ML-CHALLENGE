@@ -2,8 +2,8 @@
 
 import unittest
 
-from src.evaluate import entity_f05
-from src.retrieve_v2 import index_rows, record_keys, retrieve
+from business_entity_resolution.src.evaluate import entity_f05
+from business_entity_resolution.src.retrieve_v2 import index_rows, record_keys, retrieve
 
 
 class RetrieveV2Tests(unittest.TestCase):
@@ -26,7 +26,7 @@ class RetrieveV2Tests(unittest.TestCase):
         found = set(retrieve("US", keys, postings, counts, country_n["US"], 20))
         self.assertIn("S2-11", found)
         number_keys = {key for key, _w in record_keys("0141 Other Street", "0141 Other Street")}
-        self.assertTrue(any(key == "n:141" for key in number_keys) or any(key == "n:141" for key, _w in keys) or True)
+        self.assertIn("n:141", number_keys)
         zero_stripped = {key for key, _w in record_keys("x", "0141 Main")}
         self.assertIn("n:141", zero_stripped)
 
@@ -38,6 +38,21 @@ class RetrieveV2Tests(unittest.TestCase):
     def test_missing_address_still_emits_name_keys(self):
         keys = {key for key, _w in record_keys("Motihari Surgical Care", "")}
         self.assertTrue(any(key.startswith("t:") for key in keys))
+
+    def test_repeated_words_do_not_inflate_document_frequency_or_scores(self):
+        rows = [("S2-1", "Acme", "Market Market 0141 141", "US"),
+                ("S3-2", "Acme", "Market 141", "US"),
+                ("S1-3", "Acme", "Market 141", "US")]
+        postings, counts, country_n = index_rows(rows)
+        self.assertEqual(counts["US|aw:market"], 2)
+        self.assertEqual(counts["US|n:141"], 2)
+        self.assertEqual(len(postings["US|aw:market"]), 2)
+        self.assertEqual(country_n["US"], 2)
+        keys = record_keys("Acme Acme", "Market Market 0141 141")
+        self.assertEqual(len(keys), len(dict(keys)))
+        simple = [("aw:market", 0.8), ("n:141", 1.1)]
+        self.assertEqual(retrieve("US", simple * 3, postings, counts, 10, 2),
+                         retrieve("US", simple, postings, counts, 10, 2))
 
     def test_oracle_on_tiny_index_uses_official_f05(self):
         rows = [
